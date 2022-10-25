@@ -111,7 +111,10 @@ args.print_frequency = 10
 args.n_worker = 8
 args.resize_scale = 0.08
 args.distort_color = "tf"
-args.image_size = "128,160,192,224"
+
+args.image_size = "224"
+# args.image_size = "128,160,192,224"
+
 args.continuous_size = True
 args.not_sync_distributed_image_size = False
 
@@ -252,6 +255,7 @@ if __name__ == "__main__":
         "depth_list": sorted({min(net.depth_list), max(net.depth_list)}),
     }
     if args.task == "kernel":
+        raise NotImplementedError
         validate_func_dict["ks_list"] = sorted(args.ks_list)
         if distributed_run_manager.start_epoch == 0:
             args.ofa_checkpoint_path = download_url(
@@ -284,14 +288,19 @@ if __name__ == "__main__":
 
         if args.phase == 1:
             args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357",
+                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
                 model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
             )
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
         else:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            args.ofa_checkpoint_path = None
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
         train_elastic_depth(train, distributed_run_manager, args, validate_func_dict)
     elif args.task == "expand":
         from ofa.imagenet_classification.elastic_nn.training.progressive_shrinking import (
@@ -299,15 +308,17 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            args.ofa_checkpoint_path = None
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
         else:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            args.ofa_checkpoint_path = None
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
         train_elastic_expand(train, distributed_run_manager, args, validate_func_dict)
     else:
         raise NotImplementedError
