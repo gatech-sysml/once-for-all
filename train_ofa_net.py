@@ -40,6 +40,7 @@ parser.add_argument("--resume", action="store_true")
 
 args = parser.parse_args()
 if args.task == "kernel":
+    raise NotImplementedError
     args.path = "exp/normal2kernel"
     args.dynamic_batch_size = 1
     args.n_epochs = 120
@@ -57,7 +58,8 @@ elif args.task == "depth":
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        # args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "6"
         args.depth_list = "3,4"
     else:
@@ -65,7 +67,8 @@ elif args.task == "depth":
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        # args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "6"
         args.depth_list = "2,3,4"
 elif args.task == "expand":
@@ -76,7 +79,8 @@ elif args.task == "expand":
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        args.ks_list = "7"
+        # args.ks_list = "3,5,7"
         args.expand_list = "4,6"
         args.depth_list = "2,3,4"
     else:
@@ -84,7 +88,8 @@ elif args.task == "expand":
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        # args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "3,4,6"
         args.depth_list = "2,3,4"
 else:
