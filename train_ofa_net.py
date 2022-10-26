@@ -301,7 +301,10 @@ if __name__ == "__main__":
             #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
             # )
         else:
-            args.ofa_checkpoint_path = None
+            print("DEPTH PHASE 2222222")
+            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel2kernel_depth/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
+
+            # args.ofa_checkpoint_path =
             # args.ofa_checkpoint_path = download_url(
             #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357",
             #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
