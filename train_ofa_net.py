@@ -316,7 +316,7 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = None
+            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel2kernel_depth/phase2/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
             # args.ofa_checkpoint_path = download_url(
             #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357",
             #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
@@ -327,6 +327,8 @@ if __name__ == "__main__":
             #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357",
             #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
             # )
+
+        print(args.ofa_checkpoint_path)
         train_elastic_expand(train, distributed_run_manager, args, validate_func_dict)
     else:
         raise NotImplementedError
