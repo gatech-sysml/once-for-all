@@ -312,8 +312,8 @@ if __name__ == "__main__":
             # )
         else:
             # args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
-
-            args.ofa_checkpoint_path = '/nethome/sannavajjala6/projects/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
+            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
+            #args.ofa_checkpoint_path = '/nethome/sannavajjala6/projects/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
 
             # args.ofa_checkpoint_path = download_url(
             #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357",
