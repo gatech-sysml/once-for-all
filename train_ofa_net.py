@@ -292,19 +292,11 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            # args.ofa_checkpoint_path = download_url(
-            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357",
-            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            # )
-        else:
-            # print("DEPTH PHASE 2222222")
-            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel2kernel_depth/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
 
-            # args.ofa_checkpoint_path =
-            # args.ofa_checkpoint_path = download_url(
-            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D34_E6_K357",
-            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            # )
+        else:
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"{args.exp_id}", "kernel_depth", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+
         train_elastic_depth(train, distributed_run_manager, args, validate_func_dict)
     elif args.task == "expand":
         from ofa.imagenet_classification.elastic_nn.training.progressive_shrinking import (
@@ -312,20 +304,9 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel2kernel_depth/phase2/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
-            # args.ofa_checkpoint_path = download_url(
-            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E6_K357",
-            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            # )
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"{args.exp_id}", "kernel_depth", "phase2", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
         else:
-            # args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
-            args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
-            #args.ofa_checkpoint_path = '/nethome/sannavajjala6/projects/once-for-all/exp/kernel_depth2kernel_depth_width/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
-
-            # args.ofa_checkpoint_path = download_url(
-            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D234_E46_K357",
-            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            # )
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"{args.exp_id}", "kernel_depth_width", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
 
         print(args.ofa_checkpoint_path)
         train_elastic_expand(train, distributed_run_manager, args, validate_func_dict)
