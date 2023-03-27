@@ -219,11 +219,11 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
                     "loss": losses.avg.item(),
                     **run_manager.get_metric_vals(metric_dict, return_dict=True),
                     "R": images.size(2),
-                    "lr": new_lr,
-                    "loss_type": loss_type,
+                    # "lr": new_lr,
+                    # "loss_type": loss_type,
                     "seed": str(subnet_seed),
                     "str": subnet_str,
-                    "data_time": data_time.avg,
+                    # "data_time": data_time.avg,
                 }
             )
             t.update(1)
