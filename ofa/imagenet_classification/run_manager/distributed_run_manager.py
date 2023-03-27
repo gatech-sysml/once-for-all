@@ -60,7 +60,6 @@ class DistributedRunManager:
         if init and self.is_root:
             init_models(self.net, self.run_config.model_init)
         if self.is_root:
-            # print net info
             net_info = get_net_info(self.net, self.run_config.data_provider.data_shape)
             with open("%s/net_info.txt" % self.path, "w") as fout:
                 fout.write(json.dumps(net_info, indent=4) + "\n")

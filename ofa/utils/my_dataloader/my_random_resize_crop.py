@@ -1,21 +1,22 @@
-import time
-import random
 import math
 import os
-from PIL import Image
+import random
+import time
 
-import torchvision.transforms.functional as F
 import torchvision.transforms as transforms
+import torchvision.transforms.functional as F
+from PIL import Image
+from torchvision.transforms.functional import InterpolationMode
 
 __all__ = ["MyRandomResizedCrop", "MyResizeRandomCrop", "MyResize"]
 
 _pil_interpolation_to_str = {
-    Image.NEAREST: "PIL.Image.NEAREST",
-    Image.BILINEAR: "PIL.Image.BILINEAR",
-    Image.BICUBIC: "PIL.Image.BICUBIC",
-    Image.LANCZOS: "PIL.Image.LANCZOS",
-    Image.HAMMING: "PIL.Image.HAMMING",
-    Image.BOX: "PIL.Image.BOX",
+    InterpolationMode.NEAREST: "InterpolationMode.NEAREST",
+    InterpolationMode.BILINEAR: "InterpolationMode.BILINEAR",
+    InterpolationMode.BICUBIC: "InterpolationMode.BICUBIC",
+    InterpolationMode.LANCZOS: "InterpolationMode.LANCZOS",
+    InterpolationMode.HAMMING: "InterpolationMode.HAMMING",
+    InterpolationMode.BOX: "InterpolationMode.BOX",
 }
 
 
@@ -35,7 +36,7 @@ class MyRandomResizedCrop(transforms.RandomResizedCrop):
         size,
         scale=(0.08, 1.0),
         ratio=(3.0 / 4.0, 4.0 / 3.0),
-        interpolation=Image.BILINEAR,
+        interpolation=InterpolationMode.BILINEAR,
     ):
         if not isinstance(size, int):
             size = size[0]

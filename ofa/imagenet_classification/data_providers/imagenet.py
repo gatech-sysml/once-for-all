@@ -2,28 +2,33 @@
 # Han Cai, Chuang Gan, Tianzhe Wang, Zhekai Zhang, Song Han
 # International Conference on Learning Representations (ICLR), 2020.
 
-import warnings
-import os
 import math
+import os
+import warnings
+
 import numpy as np
 import torch.utils.data
-import torchvision.transforms as transforms
 import torchvision.datasets as datasets
+import torchvision.transforms as transforms
+from torchvision.transforms import autoaugment
+from torchvision.transforms.functional import InterpolationMode
+
+from ofa.utils.my_dataloader import MyDistributedSampler, MyRandomResizedCrop
+
 
 from .base_provider import DataProvider
-from ofa.utils.my_dataloader import MyRandomResizedCrop, MyDistributedSampler
 
 __all__ = ["ImagenetDataProvider"]
 
-
 class ImagenetDataProvider(DataProvider):
-    DEFAULT_PATH = "/dataset/imagenet"
+    # PATH to IMAGENET FOLDER
+    DEFAULT_PATH = "/serenity/data/datasets/ImageNet/"
 
     def __init__(
         self,
         save_path=None,
-        train_batch_size=256,
-        test_batch_size=512,
+        train_batch_size=128,
+        test_batch_size=64,
         valid_size=None,
         n_worker=32,
         resize_scale=0.08,
@@ -31,14 +36,19 @@ class ImagenetDataProvider(DataProvider):
         image_size=224,
         num_replicas=None,
         rank=None,
+        random_erase_prob=0.2,
+        auto_augment=False,
+        **kwargs
     ):
 
         warnings.filterwarnings("ignore")
         self._save_path = save_path
-
+        self.kwargs = kwargs
         self.image_size = image_size  # int or list of int
         self.distort_color = "None" if distort_color is None else distort_color
         self.resize_scale = resize_scale
+        self.random_erase_prob = random_erase_prob
+        self.auto_augment = auto_augment
 
         self._valid_transform_dict = {}
         if not isinstance(self.image_size, int):
@@ -69,23 +79,23 @@ class ImagenetDataProvider(DataProvider):
                 valid_size = int(len(train_dataset) * valid_size)
 
             valid_dataset = self.train_dataset(valid_transforms)
-            train_indexes, valid_indexes = self.random_sample_valid_set(
+            train_indices, valid_indices = self.random_sample_valid_set(
                 len(train_dataset), valid_size
             )
-
+            print("Num replicas: ", num_replicas)
             if num_replicas is not None:
                 train_sampler = MyDistributedSampler(
-                    train_dataset, num_replicas, rank, True, np.array(train_indexes)
+                    train_dataset, num_replicas, rank, True, np.array(train_indices)
                 )
                 valid_sampler = MyDistributedSampler(
-                    valid_dataset, num_replicas, rank, True, np.array(valid_indexes)
+                    valid_dataset, num_replicas, rank, True, np.array(valid_indices)
                 )
             else:
                 train_sampler = torch.utils.data.sampler.SubsetRandomSampler(
-                    train_indexes
+                    train_indices
                 )
                 valid_sampler = torch.utils.data.sampler.SubsetRandomSampler(
-                    valid_indexes
+                    valid_indices
                 )
 
             self.train = train_loader_class(
@@ -145,8 +155,19 @@ class ImagenetDataProvider(DataProvider):
                 pin_memory=True,
             )
 
+
         if self.valid is None:
-            self.valid = self.test
+            print("===> Validation dataset is None. Setting Val and Test as the same dataset")
+            print("===> Temporary fix only")
+            self.valid = torch.utils.data.DataLoader(
+                test_dataset,
+                batch_size=test_batch_size,
+                shuffle=True,
+                num_workers=n_worker,
+                pin_memory=True,
+            )
+            # raise ValueError
+
 
     @staticmethod
     def name():
@@ -165,7 +186,8 @@ class ImagenetDataProvider(DataProvider):
         if self._save_path is None:
             self._save_path = self.DEFAULT_PATH
             if not os.path.exists(self._save_path):
-                self._save_path = os.path.expanduser("~/dataset/imagenet")
+                self._save_path = os.path.expanduser("~/data/ImageNet/")
+
         return self._save_path
 
     @property
@@ -221,23 +243,35 @@ class ImagenetDataProvider(DataProvider):
             transforms.RandomHorizontalFlip(),
         ]
 
-        # color augmentation (optional)
-        color_transform = None
-        if self.distort_color == "torch":
-            color_transform = transforms.ColorJitter(
-                brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1
-            )
-        elif self.distort_color == "tf":
-            color_transform = transforms.ColorJitter(
-                brightness=32.0 / 255.0, saturation=0.5
-            )
-        if color_transform is not None:
-            train_transforms.append(color_transform)
+
+        # Do explicit color augmentation if auto_augment=False
+        if not self.auto_augment:
+            color_transform = None
+            if self.distort_color == "torch":
+                color_transform = transforms.ColorJitter(
+                    brightness=0.4, contrast=0.4, saturation=0.4, hue=0.1
+                )
+            elif self.distort_color == "tf":
+                color_transform = transforms.ColorJitter(
+                    brightness=32.0 / 255.0, saturation=0.5
+                )
+            if color_transform is not None:
+                train_transforms.append(color_transform)
+        else:
+            # Else do auto augment with 'imagenet' as default
+            assert self.auto_augment
+            aa_policy = autoaugment.AutoAugmentPolicy('imagenet')
+            train_transforms.append(autoaugment.AutoAugment(policy=aa_policy, interpolation=InterpolationMode.BILINEAR))
 
         train_transforms += [
             transforms.ToTensor(),
             self.normalize,
         ]
+
+        if self.auto_augment:
+            assert self.auto_augment
+            if self.random_erase_prob > 0:
+                train_transforms.append(transforms.RandomErasing(p=self.random_erase_prob))
 
         train_transforms = transforms.Compose(train_transforms)
         return train_transforms
@@ -275,25 +309,25 @@ class ImagenetDataProvider(DataProvider):
             n_samples = len(self.train.dataset)
             g = torch.Generator()
             g.manual_seed(DataProvider.SUB_SEED)
-            rand_indexes = torch.randperm(n_samples, generator=g).tolist()
+            rand_indices = torch.randperm(n_samples, generator=g).tolist()
 
             new_train_dataset = self.train_dataset(
                 self.build_train_transform(
                     image_size=self.active_img_size, print_log=False
                 )
             )
-            chosen_indexes = rand_indexes[:n_images]
+            chosen_indices = rand_indices[:n_images]
             if num_replicas is not None:
                 sub_sampler = MyDistributedSampler(
                     new_train_dataset,
                     num_replicas,
                     rank,
                     True,
-                    np.array(chosen_indexes),
+                    np.array(chosen_indices),
                 )
             else:
                 sub_sampler = torch.utils.data.sampler.SubsetRandomSampler(
-                    chosen_indexes
+                    chosen_indices
                 )
             sub_data_loader = torch.utils.data.DataLoader(
                 new_train_dataset,
