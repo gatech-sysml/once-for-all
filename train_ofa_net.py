@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import os
 import random
-
+from os.path import join, exists
 import horovod.torch as hvd
 import torch
 
@@ -37,10 +37,17 @@ parser.add_argument(
 )
 parser.add_argument("--phase", type=int, default=1, choices=[1, 2])
 parser.add_argument("--resume", action="store_true")
+parser.add_argument("--prev_phase_ckpt", type=str, default=None)
+parser.add_argument("--exp_id", type=str, required=True)
+
 
 args = parser.parse_args()
+
+assert exists(args.exp_id)
+
+CKPT_ROOT = '.'
 if args.task == "kernel":
-    args.path = "exp/normal2kernel"
+    args.path = join(CKPT_ROOT, f"{args.exp_id}/kernel")
     args.dynamic_batch_size = 1
     args.n_epochs = 120
     args.base_lr = 3e-2
@@ -50,7 +57,7 @@ if args.task == "kernel":
     args.expand_list = "6"
     args.depth_list = "4"
 elif args.task == "depth":
-    args.path = "exp/kernel2kernel_depth/phase%d" % args.phase
+    args.path = join(CKPT_ROOT, f"{args.exp_id}/kernel_depth/phase{args.phase}")
     args.dynamic_batch_size = 2
     if args.phase == 1:
         args.n_epochs = 25
@@ -69,7 +76,7 @@ elif args.task == "depth":
         args.expand_list = "6"
         args.depth_list = "2,3,4"
 elif args.task == "expand":
-    args.path = "exp/kernel_depth2kernel_depth_width/phase%d" % args.phase
+    args.path = join(CKPT_ROOT, f"{args.exp_id}/kernel_depth_width/phase{args.phase}")
     args.dynamic_batch_size = 4
     if args.phase == 1:
         args.n_epochs = 25
@@ -285,12 +292,12 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K357",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
         else:
-            print("DEPTH PHASE 2222222")
+            # print("DEPTH PHASE 2222222")
             args.ofa_checkpoint_path = '/home/akhare39/aditya/once-for-all/exp/kernel2kernel_depth/phase1/{}/checkpoint/checkpoint.pth.tar'.format(hvd.rank())
 
             # args.ofa_checkpoint_path =
