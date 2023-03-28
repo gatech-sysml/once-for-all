@@ -293,10 +293,10 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint.pth.tar")
 
         else:
-            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase1", str(hvd.rank()), "checkpoint.pth.tar")
 
         train_elastic_depth(train, distributed_run_manager, args, validate_func_dict)
     elif args.task == "expand":
@@ -305,9 +305,9 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase2", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase2", str(hvd.rank()), "checkpoint.pth.tar")
         else:
-            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth_width", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth_width", "phase1", str(hvd.rank()), "checkpoint.pth.tar")
 
         print(args.ofa_checkpoint_path)
         train_elastic_expand(train, distributed_run_manager, args, validate_func_dict)
