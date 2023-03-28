@@ -65,7 +65,7 @@ elif args.task == "depth":
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "6"
         args.depth_list = "3,4"
     else:
@@ -73,7 +73,7 @@ elif args.task == "depth":
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "6"
         args.depth_list = "2,3,4"
 elif args.task == "expand":
@@ -84,7 +84,7 @@ elif args.task == "expand":
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "4,6"
         args.depth_list = "2,3,4"
     else:
@@ -92,7 +92,7 @@ elif args.task == "expand":
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
-        args.ks_list = "3,5,7"
+        args.ks_list = "7"
         args.expand_list = "3,4,6"
         args.depth_list = "2,3,4"
 else:
@@ -120,7 +120,7 @@ args.n_worker = 8
 args.resize_scale = 0.08
 args.distort_color = "tf"
 
-args.image_size = "128,160,192,224"
+args.image_size = "224"
 
 args.continuous_size = True
 args.not_sync_distributed_image_size = False
@@ -293,7 +293,11 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
+            args.ofa_checkpoint_path = download_url(
+                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
+                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            )
+            # args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
 
         else:
             args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
