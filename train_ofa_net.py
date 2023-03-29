@@ -61,7 +61,7 @@ elif args.task == "depth":
     args.path = join(CKPT_ROOT, f"exp/{args.exp_id}/kernel_depth/phase{args.phase}")
     args.dynamic_batch_size = 2
     if args.phase == 1:
-        args.n_epochs = 25
+        args.n_epochs = 12
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
@@ -69,7 +69,7 @@ elif args.task == "depth":
         args.expand_list = "6"
         args.depth_list = "3,4"
     else:
-        args.n_epochs = 120
+        args.n_epochs = 60
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
@@ -80,7 +80,7 @@ elif args.task == "expand":
     args.path = join(CKPT_ROOT, f"exp/{args.exp_id}/kernel_depth_width/phase{args.phase}")
     args.dynamic_batch_size = 4
     if args.phase == 1:
-        args.n_epochs = 25
+        args.n_epochs = 12
         args.base_lr = 2.5e-3
         args.warmup_epochs = 0
         args.warmup_lr = -1
@@ -88,7 +88,7 @@ elif args.task == "expand":
         args.expand_list = "4,6"
         args.depth_list = "2,3,4"
     else:
-        args.n_epochs = 120
+        args.n_epochs = 40
         args.base_lr = 7.5e-3
         args.warmup_epochs = 5
         args.warmup_lr = -1
