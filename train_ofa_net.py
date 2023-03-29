@@ -302,6 +302,7 @@ if __name__ == "__main__":
         else:
             args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel_depth", "phase1", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
 
+        print(args.ofa_checkpoint_path)
         train_elastic_depth(train, distributed_run_manager, args, validate_func_dict)
     elif args.task == "expand":
         from ofa.imagenet_classification.elastic_nn.training.progressive_shrinking import (
