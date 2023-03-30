@@ -222,7 +222,7 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
                     # "lr": new_lr,
                     # "loss_type": loss_type,
                     "seed": str(subnet_seed),
-                    "str": subnet_str,
+                    # "str": subnet_str,
                     # "data_time": data_time.avg,
                 }
             )
