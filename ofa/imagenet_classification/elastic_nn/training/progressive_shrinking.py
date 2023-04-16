@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 import horovod.torch as hvd
+import wandb
 from ofa.utils import AverageMeter, cross_entropy_loss_with_soft_target
 from ofa.utils import (
     DistributedMetric,
