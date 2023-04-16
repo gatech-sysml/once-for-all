@@ -39,10 +39,12 @@ parser.add_argument("--phase", type=int, default=1, choices=[1, 2])
 parser.add_argument("--resume", action="store_true")
 parser.add_argument("--prev_phase_ckpt", type=str, default=None)
 parser.add_argument("--exp_id", type=str, required=True)
+parser.add_argument("--teacher_path", type=str, required=True)
 
 
 args = parser.parse_args()
 
+assert exists(args.teacher_path)
 if args.prev_phase_ckpt is not None:
     assert exists(args.prev_phase_ckpt)
 
@@ -146,10 +148,11 @@ if __name__ == "__main__":
     # Pin GPU to be used to process local rank (one GPU per process)
     torch.cuda.set_device(hvd.local_rank())
 
-    args.teacher_path = download_url(
-        "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
-        model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-    )
+    # args.teacher_path = args.tea
+    # args.teacher_path = download_url(
+    #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
+    #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+    # )
 
     num_gpus = hvd.size()
 
@@ -264,10 +267,10 @@ if __name__ == "__main__":
     if args.task == "kernel":
         validate_func_dict["ks_list"] = sorted(args.ks_list)
         if distributed_run_manager.start_epoch == 0:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
             load_models(
                 distributed_run_manager,
                 distributed_run_manager.net,
@@ -293,10 +296,11 @@ if __name__ == "__main__":
         )
 
         if args.phase == 1:
-            args.ofa_checkpoint_path = download_url(
-                "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
-                model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
-            )
+            args.ofa_checkpoint_path = args.teacher_path
+            # args.ofa_checkpoint_path = download_url(
+            #     "https://hanlab.mit.edu/files/OnceForAll/ofa_checkpoints/ofa_D4_E6_K7",
+            #     model_dir=".torch/ofa_checkpoints/%d" % hvd.rank(),
+            # )
             # args.ofa_checkpoint_path = join(CKPT_ROOT, f"exp/{args.exp_id}", "kernel", str(hvd.rank()), "checkpoint", "checkpoint.pth.tar")
 
         else:
