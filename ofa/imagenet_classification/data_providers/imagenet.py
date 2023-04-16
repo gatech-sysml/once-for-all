@@ -22,7 +22,7 @@ __all__ = ["ImagenetDataProvider"]
 
 class ImagenetDataProvider(DataProvider):
     # PATH to IMAGENET FOLDER
-    DEFAULT_PATH = "/serenity/data/datasets/ImageNet/"
+    DEFAULT_PATH = "//home/akhare39/data/imagenet-100/"
 
     def __init__(
         self,
@@ -171,7 +171,7 @@ class ImagenetDataProvider(DataProvider):
 
     @staticmethod
     def name():
-        return "imagenet"
+        return "imagenet-100"
 
     @property
     def data_shape(self):
@@ -179,14 +179,14 @@ class ImagenetDataProvider(DataProvider):
 
     @property
     def n_classes(self):
-        return 1000
+        return 100
 
     @property
     def save_path(self):
         if self._save_path is None:
             self._save_path = self.DEFAULT_PATH
             if not os.path.exists(self._save_path):
-                self._save_path = os.path.expanduser("~/data/ImageNet/")
+                self._save_path = os.path.expanduser("~/data/imagenet-100/")
 
         return self._save_path
 
