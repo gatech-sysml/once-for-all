@@ -85,6 +85,7 @@ def validate(
     losses_of_subnets, top1_of_subnets, top5_of_subnets = [], [], []
 
     valid_log = ""
+    valid_log_dict = {}
     for setting, name in subnet_settings:
         run_manager.write_log(
             "-" * 30 + " Validate %s " % name + "-" * 30, "train", should_print=False
@@ -99,16 +100,22 @@ def validate(
         loss, (top1, top5) = run_manager.validate(
             epoch=epoch, is_test=is_test, run_str=name, net=dynamic_net
         )
+
         losses_of_subnets.append(loss)
         top1_of_subnets.append(top1)
         top5_of_subnets.append(top5)
         valid_log += "%s (%.3f), " % (name, top1)
+
+        valid_log_dict[f"{name}_{mode}/top1"] = top1
+        valid_log_dict[f"{name}_{mode}/top5"] = top5
+        valid_log_dict[f"{name}_{mode}/loss"] = loss
 
     return (
         list_mean(losses_of_subnets),
         list_mean(top1_of_subnets),
         list_mean(top5_of_subnets),
         valid_log,
+        valid_log_dict,
     )
 
 
@@ -244,9 +251,13 @@ def train(run_manager, args, validate_func=None):
         )
 
         if (epoch + 1) % args.validation_frequency == 0:
-            val_loss, val_acc, val_acc5, _val_log = validate_func(
+            val_loss, val_acc, val_acc5, _val_log, _val_log_dict = validate_func(
                 run_manager, epoch=epoch, is_test=False
             )
+
+            if hvd.rank() == 0:
+                print("Test Syncing W&B")
+                wandb.log(_val_log_dict, step=epoch)
             # best_acc
             is_best = val_acc > run_manager.best_acc
             run_manager.best_acc = max(run_manager.best_acc, val_acc)

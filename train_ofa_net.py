@@ -9,7 +9,7 @@ import random
 from os.path import join, exists
 import horovod.torch as hvd
 import torch
-
+import wandb
 from ofa.imagenet_classification.elastic_nn.modules.dynamic_op import (
     DynamicSeparableConv2d,
 )
@@ -43,6 +43,18 @@ parser.add_argument("--teacher_path", type=str, required=True)
 
 
 args = parser.parse_args()
+WANDB_DIR = os.environ["WANDB_DIR"]
+
+def init_wandb(args) -> None:
+    wandb.init(
+        name=args.exp_id,
+        project="wsn",
+        dir=WANDB_DIR,
+        entity="gatech-sysml",
+    )
+
+    return True
+
 
 assert exists(args.teacher_path)
 if args.prev_phase_ckpt is not None:
@@ -185,6 +197,7 @@ if __name__ == "__main__":
 
     # print run config information
     if hvd.rank() == 0:
+        assert init_wandb(args), "W&B initialization failed"
         print("Run config:")
         for k, v in run_config.config.items():
             print("\t%s: %s" % (k, v))
