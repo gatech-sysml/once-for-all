@@ -8,7 +8,7 @@ import time
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
-
+import horovod.torch as hvd
 from ofa.utils import AverageMeter, cross_entropy_loss_with_soft_target
 from ofa.utils import (
     DistributedMetric,
@@ -315,9 +315,10 @@ def train_elastic_depth(train_func, run_manager, args, validate_func_dict):
 
         load_models(run_manager, dynamic_net, model_path=args.ofa_checkpoint_path)
         # validate after loading weights
+        loss, top1, top5, valid_log, valid_log_dict = validate(run_manager, is_test=True, **validate_func_dict)
         run_manager.write_log(
             "%.3f\t%.3f\t%.3f\t%s"
-            % validate(run_manager, is_test=True, **validate_func_dict),
+            % (loss, top1, top5, valid_log),
             "valid",
         )
     else:
@@ -367,11 +368,14 @@ def train_elastic_expand(train_func, run_manager, args, validate_func_dict):
 
         load_models(run_manager, dynamic_net, model_path=args.ofa_checkpoint_path)
         dynamic_net.re_organize_middle_weights(expand_ratio_stage=current_stage)
+        # validate after loading weights
+        loss, top1, top5, valid_log, valid_log_dict = validate(run_manager, is_test=True, **validate_func_dict)
         run_manager.write_log(
             "%.3f\t%.3f\t%.3f\t%s"
-            % validate(run_manager, is_test=True, **validate_func_dict),
+            % (loss, top1, top5, valid_log),
             "valid",
         )
+
     else:
         assert args.resume
 
