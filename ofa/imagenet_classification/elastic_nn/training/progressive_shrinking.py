@@ -86,6 +86,10 @@ def validate(
 
     valid_log = ""
     valid_log_dict = {}
+    if is_test:
+        mode = "test"
+    else:
+        mode = "val"
     for setting, name in subnet_settings:
         run_manager.write_log(
             "-" * 30 + " Validate %s " % name + "-" * 30, "train", should_print=False
@@ -252,7 +256,7 @@ def train(run_manager, args, validate_func=None):
 
         if (epoch + 1) % args.validation_frequency == 0:
             val_loss, val_acc, val_acc5, _val_log, _val_log_dict = validate_func(
-                run_manager, epoch=epoch, is_test=False
+                run_manager, epoch=epoch, is_test=True
             )
 
             if hvd.rank() == 0:
