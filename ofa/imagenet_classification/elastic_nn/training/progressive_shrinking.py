@@ -21,6 +21,7 @@ from ofa.utils import (
 import numpy as np
 
 from ofa.imagenet_classification.run_manager import DistributedRunManager
+import horovod.torch as hvd
 
 __all__ = [
     "validate",
@@ -223,10 +224,11 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
                 # loss.backward()
             # run_manager.optimizer.step()
             # losses.update(list_mean(loss_of_subnets), images.size(0))
-            epoch_flops.append(np.array(minibatch_flops))
-            run_manager.experiment_flops.append(np.array(epoch_flops))
 
-            np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
+            if hvd.rank() == 0:
+                epoch_flops.append(np.array(minibatch_flops))
+                run_manager.experiment_flops.append(np.array(epoch_flops))
+                np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
 
             t.set_postfix(
                 {
