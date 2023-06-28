@@ -130,8 +130,6 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
     nBatch = len(run_manager.run_config.train_loader)
 
     data_time = AverageMeter()
-    losses = DistributedMetric("train_loss") if distributed else AverageMeter()
-    metric_dict = run_manager.get_metric_dict()
 
     epoch_flops = []
     with tqdm(
@@ -140,38 +138,10 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
         disable=distributed and not run_manager.is_root,
     ) as t:
         end = time.time()
-        for i, (images, labels) in enumerate(run_manager.run_config.train_loader):
+        for i in range(nBatch):
             MyRandomResizedCrop.BATCH = i
             data_time.update(time.time() - end)
-            if epoch < warmup_epochs:
-                new_lr = run_manager.run_config.warmup_adjust_learning_rate(
-                    run_manager.optimizer,
-                    warmup_epochs * nBatch,
-                    nBatch,
-                    epoch,
-                    i,
-                    warmup_lr,
-                )
-            else:
-                new_lr = run_manager.run_config.adjust_learning_rate(
-                    run_manager.optimizer, epoch - warmup_epochs, i, nBatch
-                )
 
-            images, labels = images.cuda(), labels.cuda()
-            target = labels
-
-            # soft target
-            if args.kd_ratio > 0:
-                args.teacher_model.train()
-                with torch.no_grad():
-                    soft_logits = args.teacher_model(images).detach()
-                    soft_label = F.softmax(soft_logits, dim=1)
-
-            # clean gradients
-            dynamic_net.zero_grad()
-
-            loss_of_subnets = []
-            # compute output
             subnet_str = ""
             minibatch_flops = []
             for _ in range(args.dynamic_batch_size):
@@ -201,42 +171,14 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
                     sampled_net, (1, 3, 224, 224), custom_ops=None
                 )
                 minibatch_flops.append(flops / 1e6)
-                # output = run_manager.net(images)
-                # if args.kd_ratio == 0:
-                #     loss = run_manager.train_criterion(output, labels)
-                #     loss_type = "ce"
-                # else:
-                #     if args.kd_type == "ce":
-                #         kd_loss = cross_entropy_loss_with_soft_target(
-                #             output, soft_label
-                #         )
-                #     else:
-                #         kd_loss = F.mse_loss(output, soft_logits)
-                #     loss = args.kd_ratio * kd_loss + run_manager.train_criterion(
-                #         output, labels
-                #     )
-                #     loss_type = "%.1fkd-%s & ce" % (args.kd_ratio, args.kd_type)
-
-                # measure accuracy and record loss
-                # loss_of_subnets.append(loss)
-                # run_manager.update_metric(metric_dict, output, target)
-
-                # loss.backward()
-            # run_manager.optimizer.step()
-            # losses.update(list_mean(loss_of_subnets), images.size(0))
-
             epoch_flops.append(np.array(minibatch_flops))
 
             t.set_postfix(
                 {
-                    # "loss": losses.avg.item(),
-                    # **run_manager.get_metric_vals(metric_dict, return_dict=True),
-                    "R": images.size(2),
-                    # "lr": new_lr,
+                    "R": 224,
                     "loss_type": "ce",
                     "seed": str(subnet_seed),
                     "str": subnet_str,
-                    # "data_time": data_time.avg,
                 }
             )
             t.update(1)
@@ -246,7 +188,6 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
         run_manager.experiment_flops.append(np.array(epoch_flops))
         np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
 
-    # return losses.avg.item(), run_manager.get_metric_vals(metric_dict)
     return -1, (-1, -1)
 
 
@@ -261,40 +202,6 @@ def train(run_manager, args, validate_func=None):
         train_loss, (train_top1, train_top5) = train_one_epoch(
             run_manager, args, epoch, args.warmup_epochs, args.warmup_lr
         )
-
-        if (epoch + 1) % args.validation_frequency == 0:
-            val_loss, val_acc, val_acc5, _val_log = validate_func(
-                run_manager, epoch=epoch, is_test=False
-            )
-            # best_acc
-            is_best = val_acc > run_manager.best_acc
-            run_manager.best_acc = max(run_manager.best_acc, val_acc)
-            if not distributed or run_manager.is_root:
-                val_log = (
-                    "Valid [{0}/{1}] loss={2:.3f}, top-1={3:.3f} ({4:.3f})".format(
-                        epoch + 1 - args.warmup_epochs,
-                        run_manager.run_config.n_epochs,
-                        val_loss,
-                        val_acc,
-                        run_manager.best_acc,
-                    )
-                )
-                val_log += ", Train top-1 {top1:.3f}, Train loss {loss:.3f}\t".format(
-                    top1=train_top1, loss=train_loss
-                )
-                val_log += _val_log
-                run_manager.write_log(val_log, "valid", should_print=False)
-
-                run_manager.save_model(
-                    {
-                        "epoch": epoch,
-                        "best_acc": run_manager.best_acc,
-                        "optimizer": run_manager.optimizer.state_dict(),
-                        "state_dict": run_manager.network.state_dict(),
-                    },
-                    is_best=is_best,
-                )
-
 
 def load_models(run_manager, dynamic_net, model_path=None):
     # specify init path
