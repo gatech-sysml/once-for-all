@@ -53,6 +53,7 @@ class DistributedRunManager:
         self.best_acc = 0.0
         self.start_epoch = 0
 
+
         os.makedirs(self.path, exist_ok=True)
 
         self.net.cuda()
@@ -115,6 +116,8 @@ class DistributedRunManager:
             compression=hvd_compression,
             backward_passes_per_step=backward_steps,
         )
+
+        self.experiment_flops = []
 
     """ save path and log path """
 

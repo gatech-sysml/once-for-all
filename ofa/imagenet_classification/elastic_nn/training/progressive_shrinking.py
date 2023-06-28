@@ -16,7 +16,10 @@ from ofa.utils import (
     subset_mean,
     val2list,
     MyRandomResizedCrop,
+    profile,
 )
+import numpy as np
+
 from ofa.imagenet_classification.run_manager import DistributedRunManager
 
 __all__ = [
@@ -113,6 +116,8 @@ def validate(
 
 
 def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
+
+    epoch_flops = []
     dynamic_net = run_manager.network
     distributed = isinstance(run_manager, DistributedRunManager)
 
@@ -167,6 +172,7 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
             loss_of_subnets = []
             # compute output
             subnet_str = ""
+            minibatch_flops = []
             for _ in range(args.dynamic_batch_size):
                 # set random seed before sampling
                 subnet_seed = int("%d%.3d%.3d" % (epoch * nBatch + i, _, 0))
@@ -189,46 +195,56 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
                     + " || "
                 )
 
-                output = run_manager.net(images)
-                if args.kd_ratio == 0:
-                    loss = run_manager.train_criterion(output, labels)
-                    loss_type = "ce"
-                else:
-                    if args.kd_type == "ce":
-                        kd_loss = cross_entropy_loss_with_soft_target(
-                            output, soft_label
-                        )
-                    else:
-                        kd_loss = F.mse_loss(output, soft_logits)
-                    loss = args.kd_ratio * kd_loss + run_manager.train_criterion(
-                        output, labels
-                    )
-                    loss_type = "%.1fkd-%s & ce" % (args.kd_ratio, args.kd_type)
+                sampled_net = dynamic_net.get_active_subnet()
+                flops, _ = profile(
+                    sampled_net, (1, 3, 224, 224), custom_ops=None
+                )
+                minibatch_flops.append(flops / 1e6)
+                # output = run_manager.net(images)
+                # if args.kd_ratio == 0:
+                #     loss = run_manager.train_criterion(output, labels)
+                #     loss_type = "ce"
+                # else:
+                #     if args.kd_type == "ce":
+                #         kd_loss = cross_entropy_loss_with_soft_target(
+                #             output, soft_label
+                #         )
+                #     else:
+                #         kd_loss = F.mse_loss(output, soft_logits)
+                #     loss = args.kd_ratio * kd_loss + run_manager.train_criterion(
+                #         output, labels
+                #     )
+                #     loss_type = "%.1fkd-%s & ce" % (args.kd_ratio, args.kd_type)
 
                 # measure accuracy and record loss
-                loss_of_subnets.append(loss)
-                run_manager.update_metric(metric_dict, output, target)
+                # loss_of_subnets.append(loss)
+                # run_manager.update_metric(metric_dict, output, target)
 
-                loss.backward()
-            run_manager.optimizer.step()
+                # loss.backward()
+            # run_manager.optimizer.step()
+            # losses.update(list_mean(loss_of_subnets), images.size(0))
+            epoch_flops.append(np.array(minibatch_flops))
+            run_manager.experiment_flops.append(np.array(epoch_flops))
 
-            losses.update(list_mean(loss_of_subnets), images.size(0))
+            np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
 
             t.set_postfix(
                 {
-                    "loss": losses.avg.item(),
-                    **run_manager.get_metric_vals(metric_dict, return_dict=True),
+                    # "loss": losses.avg.item(),
+                    # **run_manager.get_metric_vals(metric_dict, return_dict=True),
                     "R": images.size(2),
                     # "lr": new_lr,
-                    # "loss_type": loss_type,
+                    "loss_type": "ce",
                     "seed": str(subnet_seed),
-                    #"str": subnet_str,
+                    "str": subnet_str,
                     # "data_time": data_time.avg,
                 }
             )
             t.update(1)
             end = time.time()
-    return losses.avg.item(), run_manager.get_metric_vals(metric_dict)
+
+    # return losses.avg.item(), run_manager.get_metric_vals(metric_dict)
+    return -1, (-1, -1)
 
 
 def train(run_manager, args, validate_func=None):
