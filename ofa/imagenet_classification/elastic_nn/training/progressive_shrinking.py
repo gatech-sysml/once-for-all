@@ -118,7 +118,6 @@ def validate(
 
 def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
 
-    epoch_flops = []
     dynamic_net = run_manager.network
     distributed = isinstance(run_manager, DistributedRunManager)
 
@@ -134,6 +133,7 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
     losses = DistributedMetric("train_loss") if distributed else AverageMeter()
     metric_dict = run_manager.get_metric_dict()
 
+    epoch_flops = []
     with tqdm(
         total=nBatch,
         desc="Train Epoch #{}".format(epoch + 1),
@@ -225,10 +225,7 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
             # run_manager.optimizer.step()
             # losses.update(list_mean(loss_of_subnets), images.size(0))
 
-            if hvd.rank() == 0:
-                epoch_flops.append(np.array(minibatch_flops))
-                run_manager.experiment_flops.append(np.array(epoch_flops))
-                np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
+            epoch_flops.append(np.array(minibatch_flops))
 
             t.set_postfix(
                 {
@@ -244,6 +241,10 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
             )
             t.update(1)
             end = time.time()
+
+    if hvd.rank() == 0:
+        run_manager.experiment_flops.append(np.array(epoch_flops))
+        np.save('ps_depth_1_flops.npy', np.array(run_manager.experiment_flops))
 
     # return losses.avg.item(), run_manager.get_metric_vals(metric_dict)
     return -1, (-1, -1)
