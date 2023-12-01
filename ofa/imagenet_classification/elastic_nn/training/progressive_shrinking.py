@@ -228,6 +228,24 @@ def train_one_epoch(run_manager, args, epoch, warmup_epochs=0, warmup_lr=0):
             )
             t.update(1)
             end = time.time()
+
+            if epoch % args.checkpoint_frequency:
+                import numpy as np
+                choice = np.random.randint(0, nBatch)
+                if i == choice:
+                    checkpoint_dict = {
+                            "epoch": epoch,
+                            "best_acc": run_manager.best_acc,
+                            "optimizer": run_manager.optimizer.state_dict(),
+                            "state_dict": run_manager.network.state_dict(),
+                        }
+                    run_manager.save_model(
+                        checkpoint_dict,
+                        is_best=False,
+                        model_name=f'checkpoint_E={epoch}_B={i}.pth.tar'
+
+                    )
+
     return losses.avg.item(), run_manager.get_metric_vals(metric_dict)
 
 
@@ -266,15 +284,24 @@ def train(run_manager, args, validate_func=None):
                 val_log += _val_log
                 run_manager.write_log(val_log, "valid", should_print=False)
 
-                run_manager.save_model(
-                    {
+                checkpoint_dict = {
                         "epoch": epoch,
                         "best_acc": run_manager.best_acc,
                         "optimizer": run_manager.optimizer.state_dict(),
                         "state_dict": run_manager.network.state_dict(),
-                    },
+                    }
+                run_manager.save_model(
+                    checkpoint_dict,
                     is_best=is_best,
                 )
+                if epoch % args.checkpoint_frequency == 0:
+                    run_manager.save_model(
+                        checkpoint_dict,
+                        is_best=is_best,
+                        model_name=f'checkpoint_{epoch}.pth.tar'
+
+                    )
+
 
 
 def load_models(run_manager, dynamic_net, model_path=None):
@@ -297,7 +324,7 @@ def train_elastic_depth(train_func, run_manager, args, validate_func_dict):
     # load pretrained models
     if run_manager.start_epoch == 0 and not args.resume:
         validate_func_dict["depth_list"] = sorted(dynamic_net.depth_list)
-
+        print("Loading model from: ", args.ofa_checkpoint_path)
         load_models(run_manager, dynamic_net, model_path=args.ofa_checkpoint_path)
         # validate after loading weights
         run_manager.write_log(
@@ -306,7 +333,14 @@ def train_elastic_depth(train_func, run_manager, args, validate_func_dict):
             "valid",
         )
     else:
-        assert args.resume
+        assert args.resume and args.ps_resume
+        validate_func_dict["depth_list"] = sorted(dynamic_net.depth_list)
+        run_manager.write_log(
+            "%.3f\t%.3f\t%.3f\t%s"
+            % validate(run_manager, is_test=True, **validate_func_dict),
+            "valid",
+        )
+
 
     run_manager.write_log(
         "-" * 30
@@ -349,7 +383,7 @@ def train_elastic_expand(train_func, run_manager, args, validate_func_dict):
     # load pretrained models
     if run_manager.start_epoch == 0 and not args.resume:
         validate_func_dict["expand_ratio_list"] = sorted(dynamic_net.expand_ratio_list)
-
+        print("Loading model from: ", args.ofa_checkpoint_path)
         load_models(run_manager, dynamic_net, model_path=args.ofa_checkpoint_path)
         dynamic_net.re_organize_middle_weights(expand_ratio_stage=current_stage)
         run_manager.write_log(
@@ -358,7 +392,14 @@ def train_elastic_expand(train_func, run_manager, args, validate_func_dict):
             "valid",
         )
     else:
-        assert args.resume
+        assert args.resume and args.ps_resume
+        validate_func_dict["expand_ratio_list"] = sorted(dynamic_net.expand_ratio_list)
+        dynamic_net.re_organize_middle_weights(expand_ratio_stage=current_stage)
+        run_manager.write_log(
+            "%.3f\t%.3f\t%.3f\t%s"
+            % validate(run_manager, is_test=True, **validate_func_dict),
+            "valid",
+        )
 
     run_manager.write_log(
         "-" * 30
@@ -419,7 +460,27 @@ def train_elastic_width_mult(train_func, run_manager, args, validate_func_dict):
             "valid",
         )
     else:
-        assert args.resume
+        assert args.resume and args.ps_resume
+        if current_stage == 0:
+            dynamic_net.re_organize_middle_weights(
+                expand_ratio_stage=len(dynamic_net.expand_ratio_list) - 1
+            )
+            run_manager.write_log(
+                "reorganize_middle_weights (expand_ratio_stage=%d)"
+                % (len(dynamic_net.expand_ratio_list) - 1),
+                "valid",
+            )
+            try:
+                dynamic_net.re_organize_outer_weights()
+                run_manager.write_log("reorganize_outer_weights", "valid")
+            except Exception:
+                pass
+        run_manager.write_log(
+            "%.3f\t%.3f\t%.3f\t%s"
+            % validate(run_manager, is_test=True, **validate_func_dict),
+            "valid",
+        )
+
 
     run_manager.write_log(
         "-" * 30

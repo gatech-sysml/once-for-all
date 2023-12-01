@@ -37,6 +37,7 @@ parser.add_argument(
 )
 parser.add_argument("--phase", type=int, default=1, choices=[1, 2])
 parser.add_argument("--resume", action="store_true")
+parser.add_argument("--ps_resume", action="store_true")
 parser.add_argument("--prev_phase_ckpt", type=str, default=None)
 parser.add_argument("--exp_id", type=str, required=True)
 
@@ -100,7 +101,7 @@ else:
 
 args.manual_seed = 0
 args.lr_schedule_type = "cosine"
-
+args.checkpoint_frequency = 5
 args.base_batch_size = 64
 args.valid_size = None
 
@@ -136,6 +137,14 @@ args.independent_distributed_sampling = False
 
 args.kd_ratio = 1.0
 args.kd_type = "ce"
+
+def resume_net_optimizer(run_manager, resume_ckpt):
+    assert resume_ckpt is not None, "args.resume_ckpt is None"
+    assert exists(resume_ckpt), f"args.resume_ckpt does not exist: {resume_ckpt}"
+    checkpoint = torch.load(resume_ckpt, map_location='cpu')
+    run_manager.network.load_state_dict(checkpoint['state_dict'])
+    run_manager.optimizer.load_state_dict(checkpoint['optimizer'])
+    run_manager.start_epoch = checkpoint['epoch'] + 1
 
 
 if __name__ == "__main__":
@@ -291,6 +300,10 @@ if __name__ == "__main__":
         from ofa.imagenet_classification.elastic_nn.training.progressive_shrinking import (
             train_elastic_depth,
         )
+
+        if args.ps_resume:
+            print("Resuming model from: ", args.resume_ckpt)
+            resume_net_optimizer(distributed_run_manager, args.resume_ckpt)
 
         if args.phase == 1:
             args.ofa_checkpoint_path = download_url(
